@@ -20,6 +20,16 @@ inputs:
     required: false
     default: "true"
 
+  gcloud-cli:
+    description: "Remove Google Cloud CLI"
+    required: false
+    default: "true"
+
+  min-file-size:
+    description: "Minimum file size in KB to remove"
+    required: false
+    default: "0"
+
   # option inspired by:
   # https://github.com/apache/flink/blob/master/tools/azure-pipelines/free_disk_space.sh
   large-packages:
@@ -57,8 +67,7 @@ runs:
         fast_rmdir() {
           if [[ -d "$1" ]] && [[ -n "$1" ]] && [[ ! "$1" = "/" ]] && [[ ! "$1" = "~" ]]; then
             echo "Removing directory: $1"
-            sudo find "$1" -type f -delete -print | wc -l
-            sudo rm -rf "$1"
+            sudo find "$1" -type f -size +${{ inputs.min-file-size }}k -delete -print | wc -l
           fi
         }
 
@@ -178,13 +187,25 @@ runs:
           printSavedSpace $SAVED "Haskell runtime"
         fi
 
+        # Option: Remove Google Cloud CLI
+
+        if [[ ${{ inputs.gcloud-cli }} == 'true' ]]; then
+          BEFORE=$(getAvailableSpace)
+
+          fast_rmdir /usr/lib/google-cloud-sdk || true
+
+          AFTER=$(getAvailableSpace)
+          SAVED=$((AFTER-BEFORE))
+          printSavedSpace $SAVED "Google Cloud CLI"
+        fi
+
         # Option: Remove large packages
         # REF: https://github.com/apache/flink/blob/master/tools/azure-pipelines/free_disk_space.sh
 
         if [[ ${{ inputs.large-packages }} == 'true' ]]; then
           BEFORE=$(getAvailableSpace)
 
-          pkgs=$(list_installed_dpkg 'aspnetcore-*' 'dotnet-*' 'llvm-*' '*php*' 'mongodb-*' 'mysql-*' azure-cli google-chrome-stable firefox powershell mono-devel libgl1-mesa-dri 'google-cloud-*' 'gcloud-*' || true)
+          pkgs=$(list_installed_dpkg 'aspnetcore-*' 'dotnet-*' 'llvm-*' '*php*' 'mongodb-*' 'mysql-*' azure-cli google-chrome-stable firefox powershell mono-devel libgl1-mesa-dri || true)
 
           gcloud_prerm='#!/bin/sh
           echo $0
