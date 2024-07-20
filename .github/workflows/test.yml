@@ -1,6 +1,10 @@
 name: Free Disk Space (Ubuntu)
 on:
   workflow_dispatch:
+    inputs:
+      min-file-size:
+        description: "Minimum file size to remove (in KB)"
+        required: false
   push:
     branches:
       - main
@@ -24,3 +28,4 @@ jobs:
           haskell: true
           large-packages: true
           swap-storage: true
+          min-file-size: ${{ inputs.min-file-size }}
