@@ -1,13 +1,19 @@
 name: Free Disk Space (Ubuntu)
-on: push
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
 
 jobs:
   free-disk-space:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       # If there is a problem with this GitHub Actions, this step will fail
       - name: Free Disk Space
-        uses: jlumbroso/free-disk-space@main
+        uses: ./
         with:
           tool-cache: true
 
